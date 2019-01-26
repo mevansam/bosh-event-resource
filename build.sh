@@ -12,3 +12,5 @@ docker images | awk '/<none>/{ print $3 }' | xargs docker rmi
 docker build . -t bosh-event-resource --squash
 docker tag bosh-event-resource $dockerhub_user/bosh-event-resource:latest
 docker tag bosh-event-resource $dockerhub_user/bosh-event-resource:$version
+
+docker push $dockerhub_user/bosh-event-resource
