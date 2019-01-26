@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -xe
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+source $(dirname $0)/common.sh
+
+if [[ -z $event_source ]]; then
+    bosh events --object-type=$object_type --after="${current_version}" --json > bosh_events.json
+else
+    user=$(bosh deployments | awk '/^[a-zA-Z]/{ print $1 }' | awk -v p="^$event_source" '$0~p { print $1 }')
+
+    if [[ -z $user ]]; then
+        bosh events --event-user=$event_source --object-type=$object_type --after="${current_version}" --json > bosh_events.json
+    else
+        bosh events --event-user=$user --object-type=$object_type --after="${current_version}" --json > bosh_events.json
+    fi
+fi
+
+# search for successfully finished tasks (error field empty, ID contains an arrow)
+events_since_last_check=$(jq --argjson excluded "${excluded_deployments}" \
+    '[
+        .Tables[0].Rows[]
+        | select(.id | contains(" <- "))
+        | select(.error == "")
+        | select([.deployment] | inside($excluded) | not)
+    ] 
+    | length' \
+    < bosh_events.json)
+
+# if there were such events - get the date of the most recent event BOSH returned
+if [[ ${events_since_last_check} -gt 0 ]]; then
+    most_recent_event_date=$(jq -r '.Tables[0].Rows[0].time' < bosh_events.json)
+    echo "[{\"last_event\": \"${most_recent_event_date}\", \"previous\": \"${current_version}\"}]" >&3
+else
+    echo "[{\"last_event\": \"${current_version}\", \"previous\": \"${previous}\"}]" >&3
+fi
+
+exit 0
