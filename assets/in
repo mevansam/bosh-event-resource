@@ -8,14 +8,14 @@ exec 1>&2 # redirect all output to stderr for logging
 source $(dirname $0)/common.sh
 
 if [[ -z $event_source ]]; then
-    bosh events --object-type=$object_type --after="${previous}" --json > bosh_events.json
+    bosh events --object-type=$object_type --after="${previous}" --json > $1/bosh_events.json
 else
     user=$(bosh deployments | awk '/^[a-zA-Z]/{ print $1 }' | awk -v p="^$event_source" '$0~p { print $1 }')
 
     if [[ -z $user ]]; then
-        bosh events --event-user=$event_source --object-type=$object_type --after="${previous}" --json > bosh_events.json
+        bosh events --event-user=$event_source --object-type=$object_type --after="${previous}" --json > $1/bosh_events.json
     else
-        bosh events --event-user=$user --object-type=$object_type --after="${previous}" --json > bosh_events.json
+        bosh events --event-user=$user --object-type=$object_type --after="${previous}" --json > $1/bosh_events.json
     fi
 fi
 
@@ -26,9 +26,9 @@ metadata=$(jq \
         | select(.error == "" )
         | {name: .time, value: ("Deployment `" + .deployment + "` " + .action + "d")} 
     ]' \
-    < bosh_events.json)
+    < $1/bosh_events.json)
 
-actions=$(jq -r '[.Tables[0].Rows[].action] | unique | .[]' < bosh_events.json)
+actions=$(jq -r '[.Tables[0].Rows[].action] | unique | .[]' < $1/bosh_events.json)
 for a in $(echo $actions); do
 
     jq -r --arg action "$a" \
@@ -40,7 +40,7 @@ for a in $(echo $actions); do
         ] 
         | unique 
         | .[]' \
-        < bosh_events.json > $1/$a
+        < $1/bosh_events.json > $1/$a
 done
 
 echo "{ \"version\" : { \"last_event\": \"${current_version}\", \"previous\": \"${previous}\" }, \"metadata\": ${metadata} }" >&3
