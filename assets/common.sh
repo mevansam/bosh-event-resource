@@ -1,6 +1,14 @@
+#!/bin/bash
+
 payload=$(mktemp $TMPDIR/bosh-deployment-event-resource-request.XXXXXX)
 
 cat > ${payload} <&0
+
+debug=$(jq -r '.source.debug // "[]"' < ${payload})
+if [[ $debug == y ]]; then
+  set -x
+fi
+
 BOSH_ENVIRONMENT="$(jq -r '.source.target // ""' < ${payload})"
 
 if [[ -n $BOSH_ENVIRONMENT ]]; then
