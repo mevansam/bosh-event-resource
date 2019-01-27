@@ -1,6 +1,6 @@
 #!/bin/bash
 
-payload=$(mktemp $TMPDIR/bosh-deployment-event-resource-request.XXXXXX)
+payload=$(mktemp $TMPDIR/bosh-event-resource-request.XXXXXX)
 
 cat > ${payload} <&0
 
@@ -8,9 +8,9 @@ debug=$(jq -r '.source.debug // "[]"' < ${payload})
 if [[ $debug == y ]]; then
 
   if [[ -n $1 ]]; then
-    exec 2> >(tee $1/bosh-event-resource.log 2>&1 >/dev/null)
+    exec 2> >(tee $1/bosh-event-resource.log)
   else
-    exec 2> >(tee bosh-event-resource.log 2>&1 >/dev/null)
+    exec 2> >(tee bosh-event-resource.log)
   fi
   set -x
 fi
