@@ -6,6 +6,12 @@ cat > ${payload} <&0
 
 debug=$(jq -r '.source.debug // "[]"' < ${payload})
 if [[ $debug == y ]]; then
+
+  if [[ -n $1 ]]; then
+    exec 2> >(tee $1/bosh-event-resource.log 2>&1 >/dev/null)
+  else
+    exec 2> >(tee bosh-event-resource.log 2>&1 >/dev/null)
+  fi
   set -x
 fi
 
